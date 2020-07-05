@@ -25,5 +25,5 @@ Project is created with:
 You can access the created Stack in the following URL
 
 ```
-http://demo.rama-arun.com
+[Rama AWS Interview Demo](http://demo.rama-arun.info)
 ```
