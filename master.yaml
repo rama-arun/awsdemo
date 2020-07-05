@@ -1,0 +1,144 @@
+# Interview Demo.
+#
+# Prerequisites
+# - AWS account and a specified Region
+# - Amazon EC2 key pair
+# - Installed Domain in Route 53.
+#
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+    This is a master template to create a Web Application Architecture.
+    The following task will be built in this template.
+    - Custom VPC with  2 Private and 2 Public Subnet spread across 2 Availability Zones.
+    - Internet Gateway, with a default route on the public subnets.
+    - NAT Gateways (In one Public AZ) and route to private subnets.
+
+###############################################################################################################
+
+Parameters: 
+
+  WHITELISTIP:
+    Default: "0.0.0.0/0"
+    Description: "Secure Your Assets - White List IPs"
+    Type: "String"
+
+  KEYPAIR:
+    Default: "demo"
+    Description: "Select EC2 KeyPair."
+    Type: "String"
+
+  HOSTEDZONE:
+    Default: "rama-arun.info"
+    Description: "Enter an existing Hosted Zone."
+    Type: "String"
+
+  INSTANCETYPE: 
+    Description: "Enter t2.micro or m1.small. Default is t2.micro."
+    Type: "String"
+    Default: "t2.micro"
+    AllowedValues: 
+      - "t2.micro"
+      - "m1.small"
+
+  TEMPLATEURL:
+    Default: "https://rama-interview-templates.s3.amazonaws.com"
+    Description: "Enter an existing S3 Cloudformation Bucket."
+    Type: "String"
+
+  OperatorEMail:
+    Description: EMail address to notify if there are any scaling operations
+    Type: String
+    AllowedPattern: "([a-zA-Z0-9_\\-\\.]+)@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.)|(([a-zA-Z0-9\\-]+\\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\\]?)"
+    ConstraintDescription: must be a valid email address.
+
+###############################################################################################################
+#
+# For any additional region & Env, you can add by yourself below.
+Mappings:
+  EnvMap:
+    demo:
+      ASMIN: '2'
+      ASMAX: '5'
+      ASDES: '2'
+      WEBDOMAIN: "demo.rama-arun.info"
+
+  RegionMap:
+    us-east-1:
+      # AMI Instance - Amazon Linux AMI 2016.09.1 (HVM), SSD Volume Type - ami-0e9089763828757e1 (Free tier eligible)
+      AMI: "ami-0e9089763828757e1"
+
+###############################################################################################################
+
+Resources:
+
+  VPC:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL: !Sub "${TEMPLATEURL}/interview-vpc.yaml"
+      TimeoutInMinutes: '5'
+      Parameters:
+        ENV: !Ref "AWS::StackName"
+        VPCCIDR: "10.0.0.0/16"
+        PUBSUBNET1CIDR: "10.0.1.0/24"
+        PUBSUBNET2CIDR: "10.0.2.0/24"
+        PRVSUBNET1CIDR: "10.0.3.0/24"
+        PRVSUBNET2CIDR: "10.0.4.0/24"
+
+  SECURITYGROUP:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL: !Sub "${TEMPLATEURL}/interview-securitygroup.yaml"
+      TimeoutInMinutes: '5'
+      Parameters:
+        ENV: !Ref "AWS::StackName"
+        WHITELISTIP: !Ref "WHITELISTIP"
+        VPC: !GetAtt "VPC.Outputs.VPC"
+        NACL: !GetAtt "VPC.Outputs.NetworkACL"
+
+  APP:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL: !Sub "${TEMPLATEURL}/interview-app.yaml"
+      TimeoutInMinutes: '5'
+      Parameters:
+        ENV: !Ref "AWS::StackName"
+        RegionAMI: !FindInMap ["RegionMap", !Ref "AWS::Region", "AMI"]
+        InstanceType: !Ref "INSTANCETYPE"
+        VpcId: !GetAtt "VPC.Outputs.VPC"
+        OperatorEMail: !Ref "OperatorEMail"
+        KeyName: !Ref "KEYPAIR"
+        SSHLocation: !Ref "WHITELISTIP"
+        PubSubnets: !GetAtt "VPC.Outputs.PublicSubnets"
+        PrvSubnets: !GetAtt "VPC.Outputs.PrivateSubnets"
+        WEBELBSG: !GetAtt "SECURITYGROUP.Outputs.WEBELBSG"
+        ASMIN: !FindInMap ["EnvMap", !Ref "AWS::StackName", "ASMIN"]
+        ASMAX: !FindInMap ["EnvMap", !Ref "AWS::StackName", "ASMAX"]
+
+  DNS:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL: !Sub "${TEMPLATEURL}/interview-route53.yaml"
+      TimeoutInMinutes: '5'
+      Parameters:
+        WEBLBDNS: !GetAtt "APP.Outputs.WEBLBDNSName"
+        HostedZoneId: !GetAtt "APP.Outputs.HostedZoneId"
+        WEBDOMAIN: !FindInMap ["EnvMap", !Ref "AWS::StackName", "WEBDOMAIN"]
+        HOSTEDZONE: !Ref "HOSTEDZONE"
+
+Outputs:
+
+  Webserver:
+    Description: "Web Server Site"
+    Value:
+      Fn::Join:
+        - ''
+        - - "http://"
+          - !FindInMap ["EnvMap", !Ref "AWS::StackName", "WEBDOMAIN"]
+          - "/"
+
+  HOSTEDZONE:
+    Description: "A reference to SSL Certificate ARN of the region"
+    Value: !Ref "HOSTEDZONE"
+    Export:
+      Name: !Sub "${AWS::StackName}CDN-HOSTEDZONE"

@@ -1,0 +1,44 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+    This template deploys route53 Setup,
+    Alias Web Elastic Load Balancer to <domain>
+
+Parameters: 
+
+  WEBDOMAIN:
+    Description: "A reference to the Webserver FQDN domain name"
+    Type: "String"
+
+  HOSTEDZONE:
+    Description: "A reference to the Hosted Zone"
+    Type: "String"
+
+  WEBLBDNS:
+    Description: "A reference to the Webserver ELB DNS Name"
+    Type: "String"
+
+  HostedZoneId:
+    Description: "A reference to the Webserver ELB Hosted Zone ID"
+    Type: "String"
+
+Resources:
+
+  Route53:
+    Type: "AWS::Route53::RecordSetGroup"
+    Properties:
+      HostedZoneName: !Sub "${HOSTEDZONE}."
+      Comment: "Zone apex alias targeted to myELB LoadBalancer."
+      RecordSets:
+      - Name: !Sub "${WEBDOMAIN}."
+        Type: 'A'
+        AliasTarget:
+          HostedZoneId: !Ref "HostedZoneId"
+          DNSName: !Ref "WEBLBDNS"
+
+
+Outputs:
+
+  WEBRoute53:
+    Description: "A reference to the Route53"
+    Value: !Ref "Route53"
