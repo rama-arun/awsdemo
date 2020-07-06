@@ -99,9 +99,9 @@ Resources:
               content:
                 Fn::Join:
                 - "\n"
-                - - <img src="https://rama-interview-templates.s3.amazonaws.com/rama.png" alt="Demo Architecture"/>
-                  - "<h1>Rama Arun - Interview AWS - Senior Solutions Architect - Presentation Supplement</h1>"
-                  - "Github - "
+                - - "<h2>Rama Arun - Interview AWS - Senior Solutions Architect - 07/08/2020</h2>"
+                  - "Github - <a href='https://github.com/rama-arun/awsdemo.git'>GITHUB Link to CloudFormation Resources</a>"
+                  - <img src='https://rama-interview-templates.s3.amazonaws.com/rama.png' alt='Demo Architecture' width='1500' height='850'/>
               mode: '000644'
               owner: root
               group: root
