@@ -101,6 +101,8 @@ Resources:
                 - "\n"
                 - - "<h2>Rama Arun - Interview AWS - Senior Solutions Architect - 07/08/2020</h2>"
                   - "Github - <a href='https://github.com/rama-arun/awsdemo.git'>GITHUB Link to CloudFormation Resources</a>"
+                  - "\n"
+                  - "Presentation Slide - <a href='https://rama-interview-templates.s3.amazonaws.com/RAMAKRISHNA_ARUN_SA+Presentation+Role+Play+Scenario+2020.pdf'>Presentation PDF Link</a>"
                   - <img src='https://rama-interview-templates.s3.amazonaws.com/rama.png' alt='Demo Architecture' width='1500' height='850'/>
               mode: '000644'
               owner: root
